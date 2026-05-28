@@ -64,7 +64,7 @@ class BlackJack(MDPsim):
 
         #blackjack natural
         if suma_jugador == 21:
-            return ("Terminal",1.5)
+            return (21, carta_visible, as_usable)
         
         #si j1 tiene menos de 12
         while suma_jugador < 12:
@@ -73,9 +73,12 @@ class BlackJack(MDPsim):
             if nueva == 1 and suma_jugador + 10 <= 21:
                 suma_jugador += 10
                 as_usable = True  
-            if suma_jugador > 21:
-                return ("Terminal", -1)
-            return (suma_jugador, carta_visible, as_usable)      
+            if suma_jugador > 21 and as_usable:
+                suma_jugador -= 10
+                as_usable = False
+        if suma_jugador > 21:
+            return ("Terminal", -1)
+        return (suma_jugador, carta_visible, as_usable)      
     
     def acciones_legales(self, s):
         if self.es_terminal(s):
@@ -140,22 +143,22 @@ if __name__ == "__main__":
 
     blackjack = BlackJack(gama=1)
    
-    Q_sarsa = SARSA( blackjack, alfa=0.1, epsilon=0.1, n_ep=5000, n_iter=100)
-    Q_learning = Q_learning( blackjack, alfa=0.1, epsilon=0.1, n_ep=5000, n_iter=100)
+    Q_sarsa = SARSA( blackjack, alfa=0.1, epsilon=0.1, n_ep=50000, n_iter=100)
+    Q_learning = Q_learning( blackjack, alfa=0.1, epsilon=0.1, n_ep=50000, n_iter=100)
 
     # Encuentra las políticas óptimas para cada algoritmo
     pi_s = PoliticaGreedy(Q_sarsa)
     pi_q = PoliticaGreedy(Q_learning)
 
     # Imprime las políticas óptimas para cada estado no terminal
-    print("Estado".center(10) + '|' +  "SARSA".center(10) + '|' + "Q-learning".center(10))
-    print("-"*10 + '|' + "-"*10 + '|' + "-"*10)
+    print("Estado".center(20) + '|' +  "SARSA".center(10) + '|' + "Q-learning".center(10))
+    print("-"*20 + '|' + "-"*10 + '|' + "-"*10)
     for s in blackjack.estados:
         if not blackjack.es_terminal(s):
-            print(str(s).center(10) + '|' 
+            print(str(s).center(20) + '|' 
                   + str(pi_s(s)).center(10) + '|' 
                   + str(pi_q(s)).center(10))
-    print("-"*10 + '|' + "-"*10 + '|' + "-"*10)
+    print("-"*20 + '|' + "-"*10 + '|' + "-"*10)
 
 
 """
@@ -165,17 +168,48 @@ Responde las siguientes preguntas:
 1. ¿Cuáles son los estados, acciones, recompensas y transiciones en el problema del 
     blackjack?  
 
+    Los estados se representan como tuplas (suma_jugador, carta_visible, as_usable), 
+    las acciones son [0,1], 0 (plantarse) y 1 (pedir carta). Las transiciones ocurren cuando el
+    jugador realiza una acción y el juego cambia de estado dependiendo de las cartas obtenidas 
+    o del turno del crupier. Las recompensas se obtienen al terminar la partida, donde si el jugador gana 
+    recibe una recompensa de 1, si empata recibe 0, si pierde recibe -1 y si se obtine un blackjack natural 
+    recibe una recompensa de 1.5
+
+
 2. ¿Cómo se pueden representar los estados del blackjack de manera eficiente para el 
     aprendizaje por refuerzo?
 
+    Usando una tupla con solo la información necesaria para tomar desiciones (suma del jugador, carta visible del crupier, as usable) 
+    Esto reduce la cantidad de estados posibles y facilita el aprendizaje por refuerzo. Al trabajar con menos información, el entrenamiento
+    requiere menos memoria y las decisiones pueden calcualrse de manera más eficiente.
+
 3. ¿Qué pasa si se modifica el valor de epsilón de la política epsilon-greedy?
 
+    Si epsilón es alto, el agente explora más pruebas y acciones aleatorias con mayor frecuencia, lo que 
+    puede ayudar a descubrir mejores estrategias aunque el aprendizaje sea más inestable. En cambio si el epsilón 
+    es bajo el agente explora menos y aprovecha más lo que ya aprendío, tomando decisiones más consistenes, pero con 
+    el riesgo de quedarse en una estrategia no óptima.
+
 4. ¿Cómo afecta el valor de alfa en la convergencia de los algoritmos SARSA y Q-learning?
+
+    Si alfa es alto, los algoritmos SARSA y Q-learning aprenden más rápido porque le dan más importancia a la información 
+    nueva, aunque esto puede hacer que las decisiones sean más inestables. Por otro lado, si alfa es bajo, el aprendizaje es más lento 
+    pero la convergencia suele ser más estable, ya que el agente conserva más de la experiencia pasada.
 
 5. ¿Cuál de los dos algoritmos, SARSA o Q-learning, consideras que es más adecuado para 
    el problema del blackjack y por qué?
 
+   Q-learning es más adecuado para el blackjack porque busca aprender directamente la mejor acción posible en cada estado, lo que suele
+   generar políticas más óptimas y  maximizar las recompensas, ya que asume que en el futuro siempre tomará la mejor acción disponible.
+   En cambio SARSA aprende usando la acción que el agente sí tomó, incluyendo las acciones aleatorias de exploración, por lo que sus decisiones
+   suelen ser un poco más cautelosas y menos óptimas.
+
 6. ¿Se puede explicar con cierta lógica del juego la política óptima encontrada por cada 
    algoritmo? ¿Qué acciones se toman en cada estado y por qué?
+
+   Sip. El estado donde el jugador tiene una suma baja como 12 normalmete la mejor opción es pedir otra carta, ya que el riesgo de perder todavía es
+   pequeño. En cambio, cuando la suma es alta como 19 la mejor decisión suele ser plantarse para evitar pasarse de 21. También influye la carta del crupier,
+   si el crupier tiene una carta baja, muchas veces conviene plantarse y esperar que el crupier pierda al pasarse de 21. 
+
 ****************************************************************************************
 """
