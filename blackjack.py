@@ -29,6 +29,12 @@ class BlackJack(MDPsim):
         self.as_crupier =False
 
     def reparte_carta(self):
+        """
+        Genera una carta aleatoria para el juego.
+        Las cartas del 1 al 9 conservan su valor, en cambio las cartas:
+            10, J, Q y K tienen un valor de 10.
+        El As se representa con el número 1, pero puede valer 11 si no hace que el jugador se pase de 21.
+        """
         carta = randint(1, 13)
 
         if carta > 10:
@@ -37,6 +43,10 @@ class BlackJack(MDPsim):
             return carta
         
     def estado_inicial(self):
+        """
+        Genera el estado inicial de una partida.
+        Reaprte dos cartas al jugador y dos cartas al crupier, una de las cuales es visible para el jugador.
+        """
         #jugador 1
         carta1 = self.reparte_carta()
         carta2 = self.reparte_carta()
@@ -81,17 +91,33 @@ class BlackJack(MDPsim):
         return (suma_jugador, carta_visible, as_usable)      
     
     def acciones_legales(self, s):
+        """
+        Devuelve las acciones que puede realizar el jugador en un estado.
+        Si el estado es teminal, no hay acciones disponibles.
+        En otro caso el jugador puede plantarse (0) o pedir otra carta (1).
+        """
         if self.es_terminal(s):
             return []
         else:
             return [0, 1]
       
     def recompensa(self, s, a, s_):
+        """
+        Devuelve la recompensa obtenida después de pasar del estado s al estado s_ usando la acción a.
+        Si el nuevo estado es teminal, se devuelve la recompensa guardada. Si el juego continua la recompensa
+        es 0.
+        """
         if self.es_terminal(s_):
             return s_[1]
         return 0
     
     def transicion(self, s, a):
+        """
+        Calcula el siguiente estado después de ejecutar una acción. 
+            Si el jugador pide carta, se actualiza la suma del jugador y se verifica si se ha pasado de 21 o si tiene un as usable.
+            Si el jugador se planta, el crupier toma cartas hsta llegar al menos a 17. Después se comparan las sumas
+            para decidir si el jugador gana, empata o pierde.
+        """
         suma_jugador = s[0]
         carta_visible = s[1]
         as_usable = s[2]
@@ -136,6 +162,14 @@ class BlackJack(MDPsim):
         
 
     def es_terminal(self, s):
+        """
+        Verifica si un estado representa el final de la partida.
+        Estado termianl.
+            ("Terminal", recompensa)
+            
+            donde recompensa es 1 si el jugador gana, 0 si empata y -1 si pierde. 
+            Si el jugador obtiene un blackjack natural, la recompensa es 1.5.
+        """
         return type(s) == tuple  and len(s) == 2 and s[0] == "Terminal"
 
 
@@ -179,15 +213,15 @@ Responde las siguientes preguntas:
 2. ¿Cómo se pueden representar los estados del blackjack de manera eficiente para el 
     aprendizaje por refuerzo?
 
-    Usando una tupla con solo la información necesaria para tomar desiciones (suma del jugador, carta visible del crupier, as usable) 
+    Usando una tupla con solo la información necesaria para tomar decisiones (suma del jugador, carta visible del crupier, as usable) 
     Esto reduce la cantidad de estados posibles y facilita el aprendizaje por refuerzo. Al trabajar con menos información, el entrenamiento
-    requiere menos memoria y las decisiones pueden calcualrse de manera más eficiente.
+    requiere menos memoria y las decisiones pueden calcularse de manera más eficiente.
 
 3. ¿Qué pasa si se modifica el valor de epsilón de la política epsilon-greedy?
 
     Si epsilón es alto, el agente explora más pruebas y acciones aleatorias con mayor frecuencia, lo que 
     puede ayudar a descubrir mejores estrategias aunque el aprendizaje sea más inestable. En cambio si el epsilón 
-    es bajo el agente explora menos y aprovecha más lo que ya aprendío, tomando decisiones más consistenes, pero con 
+    es bajo el agente explora menos y aprovecha más lo que ya aprendió, tomando decisiones más consistentes, pero con 
     el riesgo de quedarse en una estrategia no óptima.
 
 4. ¿Cómo afecta el valor de alfa en la convergencia de los algoritmos SARSA y Q-learning?
