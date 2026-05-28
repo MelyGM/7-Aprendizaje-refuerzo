@@ -44,8 +44,8 @@ class BlackJack(MDPsim):
 
         as_usable = False
         if 1 in [carta1, carta2]:
-            if suma + 10 <= 21:
-                suma += 10
+            if suma_jugador + 10 <= 21:
+                suma_jugador += 10
                 as_usable = True
 
 
@@ -54,7 +54,7 @@ class BlackJack(MDPsim):
         carta_crupier2 = self.reparte_carta()
         self.suma_crupier = carta_crupier1 + carta_crupier2
 
-        carta_visbile = carta_crupier1
+        carta_visible = carta_crupier1
 
         self.as_crupier = False
         if 1 in [carta_crupier1, carta_crupier2]:
@@ -64,13 +64,18 @@ class BlackJack(MDPsim):
 
         #blackjack natural
         if suma_jugador == 21:
-            return ("Blackjack",1.5)
+            return ("Terminal",1.5)
         
         #si j1 tiene menos de 12
         while suma_jugador < 12:
             nueva=self.reparte_carta()
             suma_jugador += nueva
-        return (suma_jugador, carta_visbile, as_usable)
+            if nueva == 1 and suma_jugador + 10 <= 21:
+                suma_jugador += 10
+                as_usable = True  
+            if suma_jugador > 21:
+                return ("Terminal", -1)
+            return (suma_jugador, carta_visible, as_usable)      
     
     def acciones_legales(self, s):
         if self.es_terminal(s):
@@ -79,29 +84,64 @@ class BlackJack(MDPsim):
             return [0, 1]
       
     def recompensa(self, s, a, s_):
-        # TODO: implementar la recompensa del blackjack
-        raise NotImplementedError("Implementa la recompensa del blackjack")
+        if self.es_terminal(s_):
+            return s_[1]
+        return 0
     
     def transicion(self, s, a):
-        # TODO: implementar la transición del blackjack
-        raise NotImplementedError("Implementa la transición del blackjack") 
-    
+        suma_jugador = s[0]
+        carta_visible = s[1]
+        as_usable = s[2]
+
+        if a == 1:
+            carta = self.reparte_carta()
+            suma_jugador += carta
+
+            if carta == 1 and suma_jugador + 10 <= 21:
+                suma_jugador += 10
+                as_usable = True    
+            if suma_jugador > 21 and as_usable:
+                suma_jugador -= 10
+                as_usable = False
+            if suma_jugador > 21:
+                return ("Terminal", -1)
+            if suma_jugador < 12:
+                suma_jugador = 12
+            return (suma_jugador, carta_visible, as_usable)
+        
+        if a == 0:
+            while self.suma_crupier < 17:
+                carta = self.reparte_carta()
+                self.suma_crupier += carta
+
+                if carta == 1 and self.suma_crupier + 10 <= 21:
+                    self.suma_crupier = self.suma_crupier + 10
+                    self.as_crupier = True
+
+                if self.suma_crupier > 21 and self.as_crupier:
+                    self.suma_crupier -= 10
+                    self.as_crupier = False
+
+            if self.suma_crupier > 21:
+                return ("Terminal", 1)
+            if suma_jugador > self.suma_crupier:
+                return ("Terminal", 1)
+            if suma_jugador == self.suma_crupier:
+                return ("Terminal", 0)
+            return ("Terminal", -1)
+        raise ValueError("Acción no válida")
+        
+
     def es_terminal(self, s):
-        return type(s) == tuple  and len(s) == 2 and s[0] == "Blackjack"
+        return type(s) == tuple  and len(s) == 2 and s[0] == "Terminal"
 
 
 if __name__ == "__main__":
 
-    blackjack = BlackJack(gama=1) # TODO: agregar los parámetros necesarios para el blackjack   
-    s = blackjack.estado_inicial()
-    print("Estado inicial:", s)
-    print("Acciones legales:", blackjack.acciones_legales(s))
-    print ("terminaaaaaal? ", blackjack.es_terminal(s)) 
-    """
-    # definir los parámetros de SARSA y Q-learning, luego crear las instancias 
-    # de cada algoritmo
-    Q_sarsa = SARSA( blackjack, alfa=..., epsilon=..., n_ep=..., n_iter=...)
-    Q_learning = Q_learning( blackjack, alfa=..., epsilon=..., n_ep=..., n_iter=...)
+    blackjack = BlackJack(gama=1)
+   
+    Q_sarsa = SARSA( blackjack, alfa=0.1, epsilon=0.1, n_ep=5000, n_iter=100)
+    Q_learning = Q_learning( blackjack, alfa=0.1, epsilon=0.1, n_ep=5000, n_iter=100)
 
     # Encuentra las políticas óptimas para cada algoritmo
     pi_s = PoliticaGreedy(Q_sarsa)
@@ -116,7 +156,7 @@ if __name__ == "__main__":
                   + str(pi_s(s)).center(10) + '|' 
                   + str(pi_q(s)).center(10))
     print("-"*10 + '|' + "-"*10 + '|' + "-"*10)
-"""
+
 
 """
 ****************************************************************************************
